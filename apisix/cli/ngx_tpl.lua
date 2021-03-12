@@ -199,6 +199,7 @@ http {
     access_log off;
     {% else %}
     log_format main escape={* http.access_log_format_escape *} '{* http.access_log_format *}';
+    uninitialized_variable_warn off;
 
     access_log {* http.access_log *} main buffer=16384 flush=3;
     {% end %}
@@ -339,25 +340,6 @@ http {
                 apisix.http_admin()
             }
         }
-
-        location /apisix/dashboard {
-            {%if allow_admin then%}
-                {% for _, allow_ip in ipairs(allow_admin) do %}
-                allow {*allow_ip*};
-                {% end %}
-                deny all;
-            {%else%}
-                allow all;
-            {%end%}
-
-            alias dashboard/;
-
-            try_files $uri $uri/index.html /index.html =404;
-        }
-
-        location =/robots.txt {
-            return 200 'User-agent: *\nDisallow: /';
-        }
     }
     {% end %}
 
@@ -449,21 +431,6 @@ http {
                 apisix.http_admin()
             }
         }
-
-        location /apisix/dashboard {
-            {%if allow_admin then%}
-                {% for _, allow_ip in ipairs(allow_admin) do %}
-                allow {*allow_ip*};
-                {% end %}
-                deny all;
-            {%else%}
-                allow all;
-            {%end%}
-
-            alias dashboard/;
-
-            try_files $uri $uri/index.html /index.html =404;
-        }
         {% end %}
 
         {% if ssl.enable then %}
@@ -525,8 +492,6 @@ http {
             set $upstream_cache_key             '';
             set $upstream_cache_bypass          '';
             set $upstream_no_cache              '';
-            set $upstream_hdr_expires           '';
-            set $upstream_hdr_cache_control     '';
 
             proxy_cache                         $upstream_cache_zone;
             proxy_cache_valid                   any {% if proxy_cache.cache_ttl then %} {* proxy_cache.cache_ttl *} {% else %} 10s {% end %};
@@ -538,11 +503,6 @@ http {
             proxy_no_cache                      $upstream_no_cache;
             proxy_cache_bypass                  $upstream_cache_bypass;
 
-            proxy_hide_header                   Cache-Control;
-            proxy_hide_header                   Expires;
-            add_header      Cache-Control       $upstream_hdr_cache_control;
-            add_header      Expires             $upstream_hdr_expires;
-            add_header      Apisix-Cache-Status $upstream_cache_status always;
             {% end %}
 
             proxy_pass      $upstream_scheme://apisix_backend$upstream_uri;

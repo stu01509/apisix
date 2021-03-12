@@ -350,6 +350,7 @@ _EOC_
         $block->set_value("stream_server_config", $stream_server_config);
     }
 
+    my $extra_init_by_lua = $block->extra_init_by_lua // "";
     my $init_by_lua_block = $block->init_by_lua_block // <<_EOC_;
     if os.getenv("APISIX_ENABLE_LUACOV") == "1" then
         require("luacov.runner")("t/apisix.luacov")
@@ -363,6 +364,7 @@ _EOC_
         dns_resolver = $dns_addrs_tbl_str,
     }
     apisix.http_init(args)
+    $extra_init_by_lua
 _EOC_
 
     my $http_config = $block->http_config // '';
@@ -539,8 +541,6 @@ _EOC_
             set \$upstream_cache_key             '';
             set \$upstream_cache_bypass          '';
             set \$upstream_no_cache              '';
-            set \$upstream_hdr_expires           '';
-            set \$upstream_hdr_cache_control     '';
 
             proxy_cache                         \$upstream_cache_zone;
             proxy_cache_valid                   any 10s;
@@ -551,12 +551,6 @@ _EOC_
             proxy_cache_key                     \$upstream_cache_key;
             proxy_no_cache                      \$upstream_no_cache;
             proxy_cache_bypass                  \$upstream_cache_bypass;
-
-            proxy_hide_header                   Cache-Control;
-            proxy_hide_header                   Expires;
-            add_header      Cache-Control       \$upstream_hdr_cache_control;
-            add_header      Expires             \$upstream_hdr_expires;
-            add_header      Apisix-Cache-Status \$upstream_cache_status always;
 
             access_by_lua_block {
                 -- wait for etcd sync
